@@ -58,6 +58,8 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   //Serial.println("Continuar");
+  //Codogo y calibraci
+
   if(Serial.available() != 0){
     option = Serial.read();
     //1. Verificar paredes

@@ -1,5 +1,5 @@
-// C++ code
-//Sensores
+
+//Pines digitales asignados para los sensores ultrasonido
 #define Pecho1 27
 #define Ptrig1 26
 #define Pecho2 29
@@ -8,21 +8,26 @@
 #define Ptrig3 30
 
 #include "Wire.h"
+
+//Librería usada para el control del shield
 #include <AFMotor.h>
+
+//Deltas de los ángulos para determinar el ragngo de giro
 #define delta_ang_inf 1
 #define delta_ang_sup 1
 
-//Var init
-//tamaño lab
+//Tamaño del laberinto
 unsigned int Maze_X = 4;
 unsigned int Maze_Y = 6;
 
-unsigned int Goal[] = {3,7}; //Meta
+//Meta
+unsigned int Goal[] = {3,7}; 
 
-//Posicion actual
+//Posicion inicial en la matriz y su dirección
 unsigned int pos_act[2] = {7,3};
 unsigned int dir_init = 0; 
 
+//Construcción de la matriz teniendo en cuenta las celdas las cuales son asignadas a las paredes
 unsigned int Tam_MazeX = (2*Maze_X)+1;
 unsigned int Tam_MazeY = (2*Maze_Y)+1;
 
@@ -30,10 +35,13 @@ int Maze[13][9];
 
 double dist = 0;
 
+//Motores
 AF_DCMotor motor1(1);
 AF_DCMotor motor2(2);
 AF_DCMotor motor3(3);
 AF_DCMotor motor4(4);  
+
+//Velocidades
 int motorSpeed = 255;
 int motorSpeed_Giro = 110;
 
@@ -42,8 +50,10 @@ bool band = 1;
 //Bandera para la correccion del giro
 bool cor_giro = 0;
 
+//Varible que indica la opción en el case de giros
 int giro = 0;
 
+//MPU 
 int MPU_addr = 0x68;
 
 int cal_gyro = 1;  //set to zero to use gyro calibration offsets below.
@@ -63,7 +73,7 @@ float yaw, pitch, roll; //Euler angle output
 //Matriz con el rango de direcciones de giro
 int direccionesRan[4][2] = {{90-delta_ang_inf,90+delta_ang_sup},{360-delta_ang_inf,delta_ang_sup},{270-delta_ang_inf,270+delta_ang_sup},{180-delta_ang_inf,180+delta_ang_sup}};
 
-//Variables del auto
+//Variables de dirección del auto
 /*
 E N O S default
 0 norte
@@ -77,12 +87,15 @@ int direcciones[4][2] = {{-1,0},{0,-1},{1,0},{0,1}};// E N O S
 unsigned int Umbral[] = {15,15,15};
 
 char option = ' ';
+
 double duracion, distancia,dl,dc,dr;
 
 
 void setup() {
 
   Serial.begin(9600);
+
+  //Ultrasonidos
   //Izquierda
   pinMode(Pecho1,INPUT);
   pinMode(Ptrig1,OUTPUT);
@@ -116,7 +129,6 @@ void loop() {
   //scaled data as vector
   float Axyz[3];
   float Gxyz[3];
-
 
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
@@ -293,35 +305,6 @@ void loop() {
     break;
     case(3):
     //Ir hacia adelante
-        /*if(cor_giro){
-          //giro derecha
-          if(!(yaw >= direccionesRan[1][0])){
-            motorSpeed = motorSpeed_Giro;
-            motor1.run(BACKWARD);
-            motor1.setSpeed(motorSpeed);
-            motor2.run(FORWARD);
-            motor2.setSpeed(motorSpeed + 40);
-            motor3.run(FORWARD);
-            motor3.setSpeed(motorSpeed);
-            motor4.run(BACKWARD);
-            motor4.setSpeed(motorSpeed + 40);
-            }
-          else if(!(yaw <= direccionesRan[1][1])){
-            motorSpeed = motorSpeed_Giro;
-            motor1.run(FORWARD);
-            motor1.setSpeed(motorSpeed);
-            motor2.run(BACKWARD);
-            motor2.setSpeed(motorSpeed + 40);
-            motor3.run(BACKWARD);
-            motor3.setSpeed(motorSpeed);
-            motor4.run(FORWARD);
-            motor4.setSpeed(motorSpeed + 40);
-            }
-          else{
-            cor_giro = 0;
-          }
-        }
-        else{*/
         motorSpeed = 170;
         motor1.run(BACKWARD);
         motor1.setSpeed(motorSpeed);
@@ -337,24 +320,22 @@ void loop() {
         motor2.run(RELEASE);
         motor3.run(RELEASE);
         motor4.run(RELEASE);
-        //}
     break;
     case(4):
     //Giro 180 grados
     if((direccionesRan[3][0] == 360-delta_ang_inf && !(yaw >= direccionesRan[3][0] || yaw <= direccionesRan[3][1])) ||
     (!(direccionesRan[3][0] == 360-delta_ang_inf) && !(yaw >= direccionesRan[3][0] && yaw <= direccionesRan[3][1]))){
+        
         motor1.run(FORWARD);
-      motor1.setSpeed(motorSpeed);
-      motor2.run(BACKWARD);
-      motor2.setSpeed(motorSpeed + 60);
-      motor3.run(BACKWARD);
-      motor3.setSpeed(motorSpeed);
-      motor4.run(FORWARD);
-      motor4.setSpeed(motorSpeed + 30);
-    //Serial.write(giro)
+        motor1.setSpeed(motorSpeed);
+        motor2.run(BACKWARD);
+        motor2.setSpeed(motorSpeed + 60);
+        motor3.run(BACKWARD);
+        motor3.setSpeed(motorSpeed);
+        motor4.run(FORWARD);
+        motor4.setSpeed(motorSpeed + 30);
     }
   else{
-      //Serial.write(4);
       motor1.run(RELEASE);
       motor2.run(RELEASE);
       motor3.run(RELEASE);
@@ -362,7 +343,6 @@ void loop() {
       girar_dir(1,direccionesRan);
       girar_dir(1,direccionesRan);
       giro=3;
-    // offset += 90;
     }
     band = 0;
       if (!band){ 
@@ -374,6 +354,7 @@ void loop() {
 }
 
 void init_Maze(){
+  //Función que delimita la matriz y estbale que las casillas impares son parte del camino y las pares paredes
   int dx, dy,x;
   for(int j = 0; j<Tam_MazeY; j++){
     for(int i = 0; i<Tam_MazeX; i++){
@@ -391,12 +372,14 @@ void init_Maze(){
   }
 }
 void init_dir(){
+  //Definición de la dirección inicial
   for(int shift=0;shift<dir_init;shift++){
     girar_dir(1,direcciones);
   } 
 }
 
 void pr_Maze(bool all){
+
   for(int j = 0; j<Tam_MazeY; j++){
     for(int i = 0; i<Tam_MazeX; i++){
       if(all){
@@ -414,6 +397,9 @@ void pr_Maze(bool all){
 }
 
 void ActParedes(){
+
+  //Función que detecta y actualiza las paredes en la matriz
+
   dl = MedirDist(Ptrig1,Pecho1); // Distancia del sensor izq
   dc = MedirDist(Ptrig2,Pecho2); // Distancia del sensor centro
   dr = MedirDist(Ptrig3,Pecho3); // Distancia del sensor der
@@ -433,8 +419,11 @@ void ActParedes(){
   }
 }
 
-//Movimiento
+
 void Mov(){
+
+  //Función que determina el proximo movimiento de acuerdo a las paredes detectadas y el peso de las celdas 
+
   unsigned int best_dir[3][2]={{0,0},{0,0},{0,0}};
   unsigned int pared,dir_gir;
   unsigned int cam = 0; //ver si hay caminos posible
@@ -496,8 +485,10 @@ void Mov(){
   
 }
 
-//Preguntar sobre haber anexado la pista como argumento
 void girar_dir(int sentido, int lista[4][2]){
+  
+  //Función encargada de actualizar las listas de direcciones y rangos de los ángulos
+
   int Xcambio[2];
   switch(sentido){
     case(1)://derecha
@@ -532,6 +523,7 @@ void girar_dir(int sentido, int lista[4][2]){
 
 double MedirDist(int sensorTrig, int sensorEcho)
 {
+  // Función que mide las distancias detectadas por los ultrasonidos
   digitalWrite(sensorTrig, LOW);
   delayMicroseconds(4);
   digitalWrite(sensorTrig, HIGH);   // genera el pulso de triger por 10us
@@ -543,6 +535,7 @@ double MedirDist(int sensorTrig, int sensorEcho)
 }
 
 void Mahony_update(float ax, float ay, float az, float gx, float gy, float gz, float deltat) {
+  
   float recipNorm;
   float vx, vy, vz;
   float ex, ey, ez;  //error terms
